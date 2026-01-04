@@ -535,7 +535,7 @@ displayContactMessages(messages) {
 // Add these methods to AdminDashboard class
 async viewMessage(messageId) {
     try {
-        const response = await fetch(`${this.apiBaseUrl}/contact/item/${messageId}`, {
+        const response = await fetch(`${this.apiBaseUrl}/contact/${messageId}`, {
             headers: {
                 'Authorization': `Bearer ${this.authToken}`
             }
@@ -625,7 +625,7 @@ async deleteMessage(messageId) {
     }
     
     try {
-        const response = await fetch(`${this.apiBaseUrl}/contact/item/${messageId}`, {
+        const response = await fetch(`${this.apiBaseUrl}/contact/${messageId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${this.authToken}`

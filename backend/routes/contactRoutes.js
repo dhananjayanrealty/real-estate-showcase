@@ -7,9 +7,10 @@ const {
   deleteContactMessage
 } = require('../controllers/contactController');
 
-router.post('/', saveContactMessage);
-router.get('/', getAllContactMessages);
-router.get('/:id', getContactMessageById);
-router.delete('/:id', deleteContactMessage);
+// Your frontend uses /item/:id, so update routes to match:
+router.post('/', saveContactMessage);                    
+router.get('/', getAllContactMessages);                  
+router.get('/:id', getContactMessageById);          
+router.delete('/:id', deleteContactMessage);        
 
 module.exports = router;

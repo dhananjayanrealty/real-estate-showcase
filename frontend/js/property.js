@@ -145,10 +145,6 @@ class PropertyDetails {
                             <a href="tel:${property.mobile_number || '+91 9876543210'}" class="btn btn-success btn-lg w-100 mb-3">
                                 <i class="fas fa-phone me-2"></i>Call Now: ${property.mobile_number || '+91 9876543210'}
                             </a>
-                            <p class="text-muted small">
-                                <i class="fas fa-user me-2"></i>
-                                Direct contact with property owner
-                            </p>
                         </div>
                     </div>
                 </div>
