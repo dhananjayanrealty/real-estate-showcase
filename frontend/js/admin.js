@@ -1,6 +1,6 @@
 class AdminDashboard {
     constructor() {
-        this.apiBaseUrl = window.API_BASE_URL || 'http://localhost:5000/api';
+        this.apiBaseUrl = window.API_BASE_URL || 'https://real-estate-showcase-backend.onrender.com/api';
         this.authToken = AuthManager.getAuthToken();
         
         if (!this.authToken) {

@@ -1,6 +1,6 @@
 class PropertyManager {
     constructor() {
-        this.apiBaseUrl = window.API_BASE_URL || 'http://localhost:5000/api';
+        this.apiBaseUrl = window.API_BASE_URL || 'https://real-estate-showcase-backend.onrender.com/api';
         console.log('🔧 PropertyManager initialized with API:', this.apiBaseUrl);
         
         this.propertiesGrid = document.getElementById('propertiesGrid');

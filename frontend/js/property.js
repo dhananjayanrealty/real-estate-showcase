@@ -5,7 +5,7 @@ class PropertyDetails {
         console.log('Current URL:', window.location.href);
         console.log('URL Search:', window.location.search);
         
-        this.apiBaseUrl = window.API_BASE_URL || 'http://localhost:5000/api';
+        this.apiBaseUrl = window.API_BASE_URL || 'https://real-estate-showcase-backend.onrender.com/api';
         console.log('Using API URL:', this.apiBaseUrl);
         
         this.propertyId = this.getPropertyIdFromUrl();

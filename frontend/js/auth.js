@@ -1,6 +1,6 @@
 class AuthManager {
     constructor() {
-        this.apiBaseUrl = window.API_BASE_URL || 'http://localhost:5000/api';
+        this.apiBaseUrl = window.API_BASE_URL || 'https://real-estate-showcase-backend.onrender.com/api';
         this.loginForm = document.getElementById('loginForm');
         this.loginMessage = document.getElementById('loginMessage');
         
