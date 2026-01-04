@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Dhananjayan Realty</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="admin-container">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <div class="sidebar-heading px-3">
+                        <h5 class="text-white">
+                            <i class="fas fa-mountain-city me-2"></i>
+                            Dhananjayan Realty
+                        </h5>
+                        <small class="text-muted">Admin Panel</small>
+                    </div>
+                    
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#dashboard" data-section="dashboard">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#properties" data-section="properties">
+                                <i class="fas fa-list me-2"></i>
+                                Properties
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#add-property" data-section="add-property">
+                                <i class="fas fa-plus-circle me-2"></i>
+                                Add Property
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#media" data-section="media">
+                                <i class="fas fa-images me-2"></i>
+                                Media Library
+                            </a>
+                        </li>
+                        <li class="nav-item">
+    <a class="nav-link" href="#contact-messages" data-section="contact-messages">
+        <i class="fas fa-envelope me-2"></i>
+        Contact Messages
+    </a>
+</li>
+                    </ul>
+                    
+                    <div class="mt-auto p-3">
+                        <button onclick="AuthManager.logout()" class="btn btn-outline-light w-100">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <!-- Header with Mobile Menu Toggle -->
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div class="d-flex align-items-center">
+            <button class="btn btn-outline-secondary d-md-none me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 id="sectionTitle" class="h2 mb-0">Dashboard</h1>
+        </div>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="adminDashboard.loadPropertiesForTable()">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Sidebar Offcanvas -->
+    <div class="offcanvas offcanvas-start d-md-none" tabindex="-1" id="mobileSidebar">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title">
+                <i class="fas fa-mountain-city me-2"></i>
+                Dhananjayan Realty
+            </h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#dashboard" data-section="dashboard" data-bs-dismiss="offcanvas">
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#properties" data-section="properties" data-bs-dismiss="offcanvas">
+                        <i class="fas fa-list me-2"></i>
+                        Properties
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#add-property" data-section="add-property" data-bs-dismiss="offcanvas">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        Add Property
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#media" data-section="media" data-bs-dismiss="offcanvas">
+                        <i class="fas fa-images me-2"></i>
+                        Media Library
+                    </a>
+                </li>
+                <li class="nav-item">
+    <a class="nav-link" href="#contact-messages" data-section="contact-messages" data-bs-dismiss="offcanvas">
+        <i class="fas fa-envelope me-2"></i>
+        Contact Messages
+    </a>
+</li>
+                <li class="nav-item mt-3">
+                    <button onclick="AuthManager.logout()" class="btn btn-outline-danger w-100">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+
+                <!-- Content Sections -->
+                <div id="contentSections">
+                    <!-- Dashboard Section -->
+                    <section id="dashboard-section" class="content-section">
+                        <div class="row">
+                            <div class="col-md-4 mb-4">
+                                <div class="card border-primary">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Total Properties</h5>
+                                        <h2 id="totalProperties" class="display-4">0</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-4">
+                                <div class="card border-success">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Total Images</h5>
+                                        <h2 id="totalImages" class="display-4">0</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-4">
+                                <div class="card border-warning">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Total Videos</h5>
+                                        <h2 id="totalVideos" class="display-4">0</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Welcome to the Admin Panel. Use the sidebar to manage properties and media.
+                        </div>
+                    </section>
+
+                    <!-- Properties List Section -->
+                    <section id="properties-section" class="content-section" style="display: none;">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Title</th>
+                                        <th>Location</th>
+                                        <th>Price</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="propertiesTable">
+                                    <!-- Properties will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- Add Property Section -->
+                    <section id="add-property-section" class="content-section" style="display: none;">
+                        <div class="row">
+                            <div class="col-lg-8">
+                                <form id="addPropertyForm">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="propertyTitle" class="form-label">Property Title *</label>
+                                            <input type="text" class="form-control" id="propertyTitle" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="propertyPrice" class="form-label">Price (₹) *</label>
+                                            <input type="number" class="form-control" id="propertyPrice" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="propertyDescription" class="form-label">Description</label>
+                                        <textarea class="form-control" id="propertyDescription" rows="3"></textarea>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="propertyLocation" class="form-label">Location *</label>
+                                            <input type="text" class="form-control" id="propertyLocation" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="propertySqft" class="form-label">Area (sqft)</label>
+                                            <input type="text" class="form-control" id="propertySqft">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="propertyMobile" class="form-label">Mobile Number *</label>
+                                        <input type="tel" class="form-control" id="propertyMobile" required>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Save Property
+                                    </button>
+                                </form>
+                            </div>
+                            
+                            <div class="col-lg-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-info-circle me-2"></i>Instructions
+                                        </h6>
+                                        <ol class="small">
+                                            <li>Fill in all required fields (*)</li>
+                                            <li>Save property first</li>
+                                            <li>Then upload images/videos</li>
+                                            <li>Use Media Library section</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+<section id="contact-messages-section" class="content-section" style="display: none;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Message</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="contactMessagesTable">
+                <tr>
+                    <td colspan="7" class="text-center">No messages yet</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+                    <!-- Media Library Section -->
+                    <section id="media-section" class="content-section" style="display: none;">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Upload Image</h5>
+                                        <form id="uploadImageForm">
+                                            <div class="mb-3">
+                                                <label for="propertySelectImage" class="form-label">Select Property</label>
+                                                <select class="form-select" id="propertySelectImage" required>
+                                                    <option value="">Choose property...</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="imageFile" class="form-label">Choose Image</label>
+                                                <input type="file" class="form-control" id="imageFile" accept="image/*" required>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-upload me-2"></i>Upload Image
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Upload Video</h5>
+                                        <form id="uploadVideoForm">
+                                            <div class="mb-3">
+                                                <label for="propertySelectVideo" class="form-label">Select Property</label>
+                                                <select class="form-select" id="propertySelectVideo" required>
+                                                    <option value="">Choose property...</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="videoFile" class="form-label">Choose Video</label>
+                                                <input type="file" class="form-control" id="videoFile" accept="video/*" required>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-upload me-2"></i>Upload Video
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="uploadProgress" class="mb-3" style="display: none;">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                            </div>
+                            <div class="text-center mt-2">
+                                <span id="progressText">Uploading...</span>
+                            </div>
+                        </div>
+                        
+                        <div id="uploadMessage" class="alert" style="display: none;"></div>
+
+                        <hr>
+                        <div id="mediaList" class="row g-3 mt-3">
+                            <!-- Media items will be rendered here by admin.js -->
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Edit Property Modal -->
+    <div class="modal fade" id="editPropertyModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Property</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editPropertyForm">
+                        <input type="hidden" id="editPropertyId">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="editPropertyTitle" class="form-label">Property Title *</label>
+                                <input type="text" class="form-control" id="editPropertyTitle" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editPropertyPrice" class="form-label">Price (₹) *</label>
+                                <input type="number" class="form-control" id="editPropertyPrice" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editPropertyDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="editPropertyDescription" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="editPropertyLocation" class="form-label">Location *</label>
+                                <input type="text" class="form-control" id="editPropertyLocation" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editPropertySqft" class="form-label">Area (sqft)</label>
+                                <input type="text" class="form-control" id="editPropertySqft">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editPropertyMobile" class="form-label">Mobile Number *</label>
+                            <input type="tel" class="form-control" id="editPropertyMobile" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="adminDashboard.updateProperty()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+<!-- Upload Progress Modal -->
+<div class="modal fade" id="uploadProgressModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModalTitle">Uploading...</h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div id="uploadModalMessage">Please wait...</div>
+                <div class="progress mt-3" style="height: 20px;">
+                    <div id="uploadModalProgress" class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%">0%</div>
+                </div>
+                <div id="uploadEstimate" class="small text-muted mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="cancelUpload()">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/admin.js"></script>
+    <script>
+        // Set backend URL
+        const API_BASE_URL = 'http://localhost:5000/api';
+        
+        // Initialize dashboard
+        let adminDashboard;
+        document.addEventListener('DOMContentLoaded', () => {
+            adminDashboard = new AdminDashboard();
+        });
+    </script>
+</body>
+</html>

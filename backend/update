@@ -1,0 +1,66 @@
+const bcrypt = require('bcryptjs');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+
+console.log('🔐 Updating admin credentials...');
+
+const dbPath = path.join(__dirname, 'database/real_estate.db');
+const db = new sqlite3.Database(dbPath);
+
+const newUsername = 'dhananjayan';
+const newPassword = 'dhananjayan@2025'; // Change this to your desired password
+const hashedPassword = bcrypt.hashSync(newPassword, 10);
+
+// First check current admin
+db.get('SELECT username FROM admins WHERE username = ?', ['admin'], (err, row) => {
+    if (err) {
+        console.error('❌ Error checking admin:', err.message);
+        db.close();
+        return;
+    }
+    
+    if (row) {
+        console.log('✅ Found admin user');
+        updateAdmin();
+    } else {
+        console.log('⚠️ Admin user not found, creating new...');
+        createAdmin();
+    }
+});
+
+function updateAdmin() {
+    db.run(
+        `UPDATE admins 
+         SET username = ?, password = ?, updated_at = CURRENT_TIMESTAMP 
+         WHERE username = 'admin'`,
+        [newUsername, hashedPassword],
+        function(err) {
+            if (err) {
+                console.error('❌ Update error:', err.message);
+            } else {
+                console.log('✅ Admin credentials updated!');
+                console.log('   Username:', newUsername);
+                console.log('   Password:', newPassword);
+                console.log('   Please login and change password immediately!');
+            }
+            db.close();
+        }
+    );
+}
+
+function createAdmin() {
+    db.run(
+        `INSERT INTO admins (username, password) VALUES (?, ?)`,
+        [newUsername, hashedPassword],
+        function(err) {
+            if (err) {
+                console.error('❌ Create error:', err.message);
+            } else {
+                console.log('✅ New admin created!');
+                console.log('   Username:', newUsername);
+                console.log('   Password:', newPassword);
+            }
+            db.close();
+        }
+    );
+}

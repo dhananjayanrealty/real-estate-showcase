@@ -1,0 +1,9 @@
+# Create netlify.toml
+echo '[build]
+  publish = "frontend"
+  command = "echo No build needed"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200' > netlify.toml

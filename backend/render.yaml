@@ -1,0 +1,12 @@
+# Create render.yaml
+echo 'services:
+  - type: web
+    name: real-estate-backend
+    env: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000' > render.yaml

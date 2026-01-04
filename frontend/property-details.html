@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Details - Dhananjayan Realty</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-white shadow-sm fixed-top">
+        <div class="container">
+            <button class="btn btn-outline-light me-2 d-inline-flex align-items-center d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" aria-controls="sidebarOffcanvas">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand fw-bold text-primary mx-auto d-lg-none" href="index.html">
+                <i class="fas fa-mountain-city me-2"></i>Dhananjayan Realty
+            </a>
+            <a class="navbar-brand fw-bold text-primary d-none d-lg-block" href="index.html">
+                <i class="fas fa-mountain-city me-2"></i>Dhananjayan Realty
+            </a>
+            <ul class="navbar-nav ms-auto d-none d-lg-flex">
+                <li class="nav-item">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="about.html">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="admin-login.html">Admin</a>
+                </li>
+            </ul>
+
+            <div class="offcanvas offcanvas-start d-lg-none" tabindex="-1" id="sidebarOffcanvas" aria-labelledby="sidebarLabel">
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title" id="sidebarLabel">Menu</h5>
+                    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body px-0">
+                    <ul class="navbar-nav w-100">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="about.html">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="admin-login.html">Admin</a>
+                    </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Property Details -->
+    <div class="container mt-5 pt-5">
+        <div id="propertyDetails">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading property details...</p>
+            </div>
+        </div>
+
+        <!-- Image Gallery -->
+        <div id="imageGallery" class="mt-5" style="display: none;">
+            <h4 class="mb-4">Property Photos</h4>
+            <div class="image-gallery" id="galleryContainer"></div>
+        </div>
+
+        <!-- Video Gallery -->
+        <div id="videoGallery" class="mt-5" style="display: none;">
+            <h4 class="mb-4">Property Videos</h4>
+            <div class="video-gallery" id="videoContainer"></div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="mt-5 text-center">
+            <a href="index.html" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Properties
+            </a>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body position-relative text-center p-0">
+                    <button id="modalPrev" type="button" class="btn btn-light shadow-sm lightbox-nav lightbox-prev" aria-label="Previous">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+
+                    <img id="modalImage" src="" class="img-fluid w-100" alt="">
+
+                    <button id="modalNext" type="button" class="btn btn-light shadow-sm lightbox-nav lightbox-next" aria-label="Next">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+
+                    <div id="modalCaption" class="small text-muted py-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Dhananjayan Realty</h5>
+                    <p>Your trusted partner in land investment since 2025.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <h5>Contact Us</h5>
+                    <p><i class="fas fa-phone me-2"></i>+91 77084 11338</p>
+                    <p><i class="fas fa-envelope me-2"></i>dhananjayanrealty@gmail.com</p>
+                </div>
+            </div>
+            <hr class="bg-white">
+            <div class="text-center">
+                <p class="mb-0">&copy; 2025 Dhananjayan Realty. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- IMPORTANT: Only ONE API_BASE_URL definition -->
+    <script>
+        // Set backend URL - ONLY ONCE
+        const API_BASE_URL = 'http://localhost:5000/api';
+        console.log('API Base URL set to:', API_BASE_URL);
+    </script>
+    
+    <!-- Load property.js AFTER API_BASE_URL is defined -->
+    <script src="js/property.js"></script>
+</body>
+</html>
