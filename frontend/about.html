@@ -299,22 +299,15 @@ async function handleContactSubmit(e) {
     const formData = {
         name: document.getElementById('name').value.trim(),
         phone: document.getElementById('phone').value.trim(),
-        email: document.getElementById('email').value.trim(),
+        email: document.getElementById('email').value.trim() || '',
         message: document.getElementById('message').value.trim()
     };
     
-    // Validation
-    if (!formData.name || !formData.phone || !formData.message) {
-        alert('Please fill in all required fields (Name, Phone, Message)');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-        return;
-    }
-    
-    console.log('Sending contact form to:', `${API_BASE_URL}/api/contact`);
+    console.log('📤 Sending contact form:', formData);
+    console.log('🔗 To API:', `${API_BASE_URL}/contact`);
     
     try {
-        const response = await fetch(`${API_BASE_URL}/api/contact`, {
+        const response = await fetch(`${API_BASE_URL}/contact`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -322,43 +315,47 @@ async function handleContactSubmit(e) {
             body: JSON.stringify(formData)
         });
         
-        const data = await response.json();
-        console.log('Response:', data);
+        console.log('📥 Response status:', response.status);
         
-        if (response.ok && data.success) {
-            // Show success message
-            const successHTML = `
-                <div class="alert alert-success">
-                    <h4><i class="fas fa-check-circle me-2"></i>Message Sent Successfully!</h4>
-                    <p>${data.message}</p>
-                    ${data.emailSent ? 
-                        '<p><i class="fas fa-envelope me-2 text-success"></i>Notification sent to admin</p>' : 
-                        '<p><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Email notification not sent</p>'
-                    }
-                    <p class="small text-muted mt-2">We will contact you soon.</p>
-                </div>
-            `;
-            
-            // Insert alert before form
-            const form = document.getElementById('contactForm');
-            form.insertAdjacentHTML('beforebegin', successHTML);
-            
-            // Reset form
-            form.reset();
-            
-            // Remove alert after 5 seconds
-            setTimeout(() => {
-                const alert = document.querySelector('.alert-success');
-                if (alert) alert.remove();
-            }, 5000);
-            
-        } else {
-            alert(data.error || 'Failed to send message. Please try again.');
-        }
+        const data = await response.json();
+        console.log('📨 Response data:', data);
+        
+       // Update this part
+if (response.ok && data.success) {
+    // Show success message
+    const successHTML = `
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <h5 class="alert-heading">
+                <i class="fas fa-check-circle me-2"></i>✓ Message Sent!
+            </h5>
+            <p>${data.message}</p>
+            <p class="small mb-0">Your message ID: ${data.messageId}</p>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    // Insert and reset form
+    document.getElementById('contactForm').insertAdjacentHTML('beforebegin', successHTML);
+    document.getElementById('contactForm').reset();
+    
+    // Scroll to success message
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
         
     } catch (error) {
-        console.error('Network error:', error);
-        alert('Network error. Please check your internet connection.');
+        console.error('❌ Network error:', error);
+        
+        // Show network error
+        const errorHTML = `
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <h5 class="alert-heading">
+                    <i class="fas fa-wifi me-2"></i>Network Error
+                </h5>
+                <p>Please check your internet connection and try again.</p>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        document.getElementById('contactForm').insertAdjacentHTML('beforebegin', errorHTML);
         
     } finally {
         // Re-enable button
