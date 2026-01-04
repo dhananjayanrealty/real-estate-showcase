@@ -238,9 +238,9 @@ Tamilnadu</p>
         submitBtn.disabled = true;
         
         try {
-            console.log('Sending to API:', `${API_BASE_URL}/contact`);
+            console.log('Sending to API:', `${API_BASE_URL}/api/contact`);
             
-            const response = await fetch(`${API_BASE_URL}/contact`, {
+            const response = await fetch(`${API_BASE_URL}/api/contact`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, phone: cleanPhone, email, message })
@@ -311,10 +311,10 @@ async function handleContactSubmit(e) {
         return;
     }
     
-    console.log('Sending contact form to:', `${API_BASE_URL}/contact`);
+    console.log('Sending contact form to:', `${API_BASE_URL}/api/contact`);
     
     try {
-        const response = await fetch(`${API_BASE_URL}/contact`, {
+        const response = await fetch(`${API_BASE_URL}/api/contact`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

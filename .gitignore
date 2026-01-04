@@ -4,7 +4,6 @@ yarn-debug.log*
 yarn-error.log*
 .env
 backend/.env
-backend/database/*.db
 frontend/node_modules/
 .DS_Store
 .vscode/
