@@ -45,35 +45,31 @@ const uploadImageMiddleware = multer({
   }
 });
 
-// In uploadVideoMiddleware, change limit from 50MB to 32MB (ImgBB limit)
 const uploadVideoMiddleware = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 32 * 1024 * 1024, // Changed from 50MB to 32MB for ImgBB
+    fileSize: 50 * 1024 * 1024, // 50MB for videos (as requested)
   }
 });
 
-// Update error message
+// Error handling middleware
 const handleUploadError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
       const fileType = req.path.includes('image') ? 'Image' : 'Video';
-      const maxSize = req.path.includes('image') ? '10MB' : '32MB'; // Changed from 50MB to 32MB
+      const maxSize = req.path.includes('image') ? '10MB' : '50MB';
       return res.status(400).json({ 
-        success: false,
         error: 'File too large', 
         message: `${fileType} file must be less than ${maxSize}` 
       });
     }
     return res.status(400).json({ 
-      success: false,
       error: 'Upload error', 
       message: err.message 
     });
   } else if (err) {
     return res.status(400).json({ 
-      success: false,
       error: 'File validation error', 
       message: err.message 
     });
