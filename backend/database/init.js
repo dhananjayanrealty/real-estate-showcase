@@ -5,18 +5,28 @@ const initDatabase = async () => {
   try {
     console.log('🔄 Initializing PostgreSQL database...');
 
-    // Create tables with PostgreSQL syntax
-    const sql = `
-      -- Admins table
+    // Test connection first
+    console.log('🔌 Testing database connection...');
+    await db.query('SELECT 1 as test');
+    console.log('✅ Database connection successful');
+
+    // Create tables one by one (not all in one query)
+    console.log('📝 Creating tables...');
+    
+    // 1. Admins table
+    await db.query(`
       CREATE TABLE IF NOT EXISTS admins (
         id SERIAL PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
+      )
+    `);
+    console.log('✅ Admins table created');
 
-      -- Properties table
+    // 2. Properties table
+    await db.query(`
       CREATE TABLE IF NOT EXISTS properties (
         id SERIAL PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
@@ -27,18 +37,24 @@ const initDatabase = async () => {
         mobile_number VARCHAR(20) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
+      )
+    `);
+    console.log('✅ Properties table created');
 
-      -- Property media table
+    // 3. Property media table
+    await db.query(`
       CREATE TABLE IF NOT EXISTS property_media (
         id SERIAL PRIMARY KEY,
         property_id INTEGER NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
         media_type VARCHAR(10) CHECK (media_type IN ('photo', 'video')) NOT NULL,
         media_url TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
+      )
+    `);
+    console.log('✅ Property media table created');
 
-      -- Contact messages table
+    // 4. Contact messages table
+    await db.query(`
       CREATE TABLE IF NOT EXISTS contact_messages (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -46,13 +62,12 @@ const initDatabase = async () => {
         email VARCHAR(255),
         message TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `;
+      )
+    `);
+    console.log('✅ Contact messages table created');
 
-    await db.query(sql);
-    console.log('✅ Tables created successfully!');
-
-    // Create indexes
+    // Create indexes one by one
+    console.log('📊 Creating indexes...');
     const indexes = [
       'CREATE INDEX IF NOT EXISTS idx_properties_location ON properties(location)',
       'CREATE INDEX IF NOT EXISTS idx_properties_price ON properties(price)',
@@ -64,13 +79,14 @@ const initDatabase = async () => {
     for (const indexSql of indexes) {
       await db.query(indexSql);
     }
-    console.log('✅ Indexes created successfully!');
+    console.log('✅ Indexes created');
 
-    // Check if admin exists, if not create default admin
+    // Check if admin exists
+    console.log('👑 Checking admin user...');
     const adminExists = await db.get('SELECT id FROM admins WHERE username = $1', ['dhananjayan']);
     
     if (!adminExists) {
-      console.log('👑 Creating default admin user...');
+      console.log('Creating default admin user...');
       const hashedPassword = await bcrypt.hash('dhananjayan@2025', 10);
       await db.run(
         'INSERT INTO admins (username, password) VALUES ($1, $2)',
@@ -81,65 +97,12 @@ const initDatabase = async () => {
       console.log('✅ Admin user already exists');
     }
 
-    console.log('✅ PostgreSQL database initialization completed!');
+    console.log('🎉 PostgreSQL database initialization completed!');
     
   } catch (error) {
-    console.error('❌ Database initialization failed:', error);
+    console.error('❌ Database initialization failed:', error.message);
     throw error;
   }
 };
 
-// Add update trigger function
-const addUpdateTrigger = async () => {
-  try {
-    // Function to update timestamp
-    await db.query(`
-      CREATE OR REPLACE FUNCTION update_updated_at_column()
-      RETURNS TRIGGER AS $$
-      BEGIN
-        NEW.updated_at = CURRENT_TIMESTAMP;
-        RETURN NEW;
-      END;
-      $$ language 'plpgsql';
-    `);
-
-    // Create triggers for properties
-    await db.query(`
-      DROP TRIGGER IF EXISTS update_properties_updated_at ON properties;
-      CREATE TRIGGER update_properties_updated_at
-      BEFORE UPDATE ON properties
-      FOR EACH ROW
-      EXECUTE FUNCTION update_updated_at_column();
-    `);
-
-    // Create triggers for admins
-    await db.query(`
-      DROP TRIGGER IF EXISTS update_admins_updated_at ON admins;
-      CREATE TRIGGER update_admins_updated_at
-      BEFORE UPDATE ON admins
-      FOR EACH ROW
-      EXECUTE FUNCTION update_updated_at_column();
-    `);
-
-    console.log('✅ Update triggers created successfully!');
-  } catch (error) {
-    console.error('⚠️ Could not create triggers:', error.message);
-    // Continue without triggers
-  }
-};
-
-// Run initialization if this file is executed directly
-if (require.main === module) {
-  initDatabase()
-    .then(() => addUpdateTrigger())
-    .then(() => {
-      console.log('✅ Database setup completed!');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('❌ Database setup failed:', error);
-      process.exit(1);
-    });
-}
-
-module.exports = { initDatabase, addUpdateTrigger };
+module.exports = { initDatabase };

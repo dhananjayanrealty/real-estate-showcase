@@ -174,30 +174,44 @@ app.use((req, res) => {
 // ========== Server Startup ==========
 const PORT = process.env.PORT || 5000;
 
+// Update the database initialization part
 const startServer = async () => {
   try {
     console.log('🚀 Starting server with PostgreSQL...');
     console.log('📊 Database URL:', process.env.DATABASE_URL ? 'Configured' : 'Not configured');
     
-    // Initialize database
-    await initDatabase();
-    await addUpdateTrigger();
+    // Initialize database with timeout
+    console.log('🔄 Initializing database (timeout: 30s)...');
+    await Promise.race([
+      initDatabase(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database initialization timeout')), 30000)
+      )
+    ]);
     
     // Start server
+    const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
       console.log(`✅ Server running on port ${PORT}`);
-      console.log(`🔗 API Documentation: http://localhost:${PORT}/api`);
-      console.log(`❤️  Health check: http://localhost:${PORT}/api/health`);
-      console.log(`🔧 CORS test: http://localhost:${PORT}/api/test-cors`);
-      console.log(`🔐 Admin login: dhananjayan / dhananjayan@2025`);
+      console.log(`🔗 API: https://real-estate-showcase-backend.onrender.com`);
+      console.log(`🔐 Admin: dhananjayan / dhananjayan@2025`);
     });
     
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
-    process.exit(1);
+    console.error('❌ Failed to start server:', error.message);
+    
+    // If database fails, try to start server anyway (for debugging)
+    if (error.message.includes('database') || error.message.includes('timeout')) {
+      console.log('⚠️ Starting server in degraded mode (database may not work)');
+      const PORT = process.env.PORT || 5000;
+      app.listen(PORT, () => {
+        console.log(`⚠️ Server running (database issue) on port ${PORT}`);
+      });
+    } else {
+      process.exit(1);
+    }
   }
 };
-
 startServer();
 
 module.exports = app;
