@@ -1,9 +1,15 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+// Create singleton instance
+let dbInstance = null;
+
 class Database {
   constructor() {
-    // Neon requires sslmode=require in connection string
+    if (dbInstance) {
+      return dbInstance;
+    }
+    
     const connectionString = process.env.DATABASE_URL;
     
     if (!connectionString) {
@@ -11,27 +17,30 @@ class Database {
       throw new Error('DATABASE_URL environment variable is required');
     }
     
+    console.log('📊 Creating PostgreSQL pool for Neon.tech...');
+    
     this.pool = new Pool({
       connectionString: connectionString,
       ssl: {
         rejectUnauthorized: false,
         require: true
       },
-      connectionTimeoutMillis: 10000, // 10 seconds
+      connectionTimeoutMillis: 10000,
       idleTimeoutMillis: 30000,
-      max: 5, // Neon free tier allows 5 connections
+      max: 5,
     });
-    
-    console.log('📊 PostgreSQL pool created for Neon.tech');
     
     // Test connection
-    this.pool.on('connect', () => {
-      console.log('✅ Connected to Neon PostgreSQL');
+    this.pool.connect((err, client, release) => {
+      if (err) {
+        console.error('❌ Error connecting to database:', err.message);
+      } else {
+        console.log('✅ Connected to Neon PostgreSQL');
+        release();
+      }
     });
     
-    this.pool.on('error', (err) => {
-      console.error('❌ PostgreSQL pool error:', err);
-    });
+    dbInstance = this;
   }
 
   // Convert SQLite ? placeholders to PostgreSQL $1, $2
@@ -90,5 +99,12 @@ class Database {
   }
 }
 
+// Create and export instance
 const db = new Database();
-module.exports = db;
+
+// Export methods directly
+module.exports = {
+  query: db.query.bind(db),
+  run: db.run.bind(db),
+  get: db.get.bind(db)
+};

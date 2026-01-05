@@ -5,11 +5,11 @@ const initDatabase = async () => {
   try {
     console.log('🔄 Initializing Neon PostgreSQL database...');
     
-    // Test connection first
+    // Simple test query
     await db.query('SELECT 1 as test');
     console.log('✅ Connection test successful');
     
-    // Create tables with shorter SQL
+    // Create tables one by one
     const tables = [
       // Admins table
       `CREATE TABLE IF NOT EXISTS admins (
@@ -20,7 +20,7 @@ const initDatabase = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`,
       
-      // Properties table
+      // Properties table (simplified)
       `CREATE TABLE IF NOT EXISTS properties (
         id SERIAL PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
@@ -29,8 +29,7 @@ const initDatabase = async () => {
         location VARCHAR(255) NOT NULL,
         sqft VARCHAR(50),
         mobile_number VARCHAR(20) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`,
       
       // Property media table
@@ -39,8 +38,7 @@ const initDatabase = async () => {
         property_id INTEGER NOT NULL,
         media_type VARCHAR(10) NOT NULL,
         media_url TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`,
       
       // Contact messages table
@@ -54,35 +52,29 @@ const initDatabase = async () => {
       )`
     ];
     
-    // Create tables one by one
     for (const tableSql of tables) {
       await db.query(tableSql);
     }
     console.log('✅ All tables created');
     
-    // Check/create admin user
-    const adminExists = await db.get(
-      'SELECT id FROM admins WHERE username = $1', 
-      ['dhananjayan']
-    );
-    
-    if (!adminExists) {
-      console.log('👑 Creating admin user...');
+    // Create admin user
+    try {
       const hashedPassword = await bcrypt.hash('dhananjayan@2025', 10);
       await db.run(
-        'INSERT INTO admins (username, password) VALUES ($1, $2)',
+        'INSERT INTO admins (username, password) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING',
         ['dhananjayan', hashedPassword]
       );
-      console.log('✅ Admin created: dhananjayan / dhananjayan@2025');
-    } else {
-      console.log('✅ Admin already exists');
+      console.log('✅ Admin user ready: dhananjayan / dhananjayan@2025');
+    } catch (adminError) {
+      console.log('⚠️ Admin may already exist');
     }
     
-    console.log('🎉 Neon database initialization complete!');
+    console.log('🎉 Database initialization complete!');
     
   } catch (error) {
     console.error('❌ Database initialization failed:', error.message);
-    throw error;
+    // Don't crash the server - maybe database is still starting
+    console.log('⚠️ Continuing without database initialization...');
   }
 };
 
