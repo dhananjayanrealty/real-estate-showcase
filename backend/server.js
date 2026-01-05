@@ -3,104 +3,109 @@ const express = require('express');
 const cors = require('cors');
 
 const app = express();
-const contactRoutes = require('./routes/contactRoutes');
-// Middleware - consolidate CORS using ALLOWED_ORIGINS env var
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || '*')
-  .split(',')
-  .map(o => o.trim())
-  .filter(Boolean);
 
-app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like Postman or server-to-server)
+// ========== CORS Configuration ==========
+const allowedOrigins = [
+  'https://dhananjayan-realty.netlify.app',
+  'http://localhost:3000',
+  'http://127.0.0.1:5500',
+  'http://localhost:5500'
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
       callback(null, true);
     } else {
+      console.log('⚠️ CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
+  maxAge: 86400
+};
 
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/api/contact', contactRoutes);
+
+// Log requests
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+  next();
+});
+
 // Database initialization
-const db = require('./database/db');
+const { initDatabase } = require('./database/init');
 
 // Routes
+const contactRoutes = require('./routes/contactRoutes');
 const authRoutes = require('./routes/authRoutes');
 const propertyRoutes = require('./routes/propertyRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 
+app.use('/api/contact', contactRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Server is running',
-    timestamp: new Date().toISOString()
-  });
+// Health check
+app.get('/api/health', async (req, res) => {
+  try {
+    const db = require('./database/db');
+    await db.query('SELECT 1 as test');
+    res.json({ 
+      status: 'OK', 
+      message: 'Server is running',
+      database: 'Neon PostgreSQL - Connected',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      status: 'ERROR', 
+      message: 'Database connection failed',
+      error: error.message 
+    });
+  }
 });
 
-// API Documentation endpoint
+// API docs
 app.get('/api', (req, res) => {
   res.json({
     message: '🏠 Real Estate Land Showcase API',
-    version: '1.0.0',
-    documentation: 'Available endpoints:',
+    version: '2.0.0',
+    database: 'Neon PostgreSQL',
+    admin: 'dhananjayan / dhananjayan@2025',
     endpoints: {
-      auth: {
-        login: 'POST /api/auth/login',
-        logout: 'POST /api/auth/logout',
-        check: 'GET /api/auth/check'
-      },
-      properties: {
-        getAll: 'GET /api/properties',
-        getSingle: 'GET /api/properties/:id',
-        create: 'POST /api/properties',
-        update: 'PUT /api/properties/:id',
-        delete: 'DELETE /api/properties/:id'
-      },
-      upload: {
-        image: 'POST /api/upload/image',
-        video: 'POST /api/upload/video',
-        deleteMedia: 'DELETE /api/upload/media/:id'
-      },
-      health: 'GET /api/health'
-    },
-    database: {
-      type: 'SQLite',
-      status: 'Connected',
-      path: './database/real_estate.db'
-    },
-    quickStart: {
-      testProperty: 'GET /api/properties/1',
-      testHealth: 'GET /api/health',
-      adminLogin: 'POST /api/auth/login with {"username":"admin","password":"admin123"}'
+      health: 'GET /api/health',
+      auth: 'POST /api/auth/login',
+      properties: 'GET /api/properties',
+      contact: 'POST /api/contact'
     }
   });
 });
 
-// Root endpoint
+// Root
 app.get('/', (req, res) => {
   res.redirect('/api');
 });
 
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('❌ Error:', err.stack);
   res.status(500).json({ 
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong!'
   });
 });
-// 404 handler
+
+// 404
 app.use((req, res) => {
   res.status(404).json({
     error: 'Not Found',
@@ -109,15 +114,15 @@ app.use((req, res) => {
   });
 });
 
+// Start server
 const PORT = process.env.PORT || 5000;
 
-// Initialize database and start server
-db.initDatabase().then(() => {
+initDatabase().then(() => {
   app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
-    console.log(`🔗 API Documentation: http://localhost:${PORT}/api`);
-    console.log(`❤️  Health check: http://localhost:${PORT}/api/health`);
-    console.log(`🏠 Properties: http://localhost:${PORT}/api/properties`);
+    console.log(`📊 Database: Neon PostgreSQL`);
+    console.log(`🔗 API: https://real-estate-showcase-backend.onrender.com`);
+    console.log(`🔐 Admin: dhananjayan / dhananjayan@2025`);
   });
 }).catch(err => {
   console.error('❌ Failed to initialize database:', err);
