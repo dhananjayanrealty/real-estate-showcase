@@ -2,6 +2,7 @@
   "name": "real-estate-backend",
   "version": "1.0.0",
   "description": "Real Estate Property Showcase Backend",
+   "pg": "^8.11.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -1,87 +1,88 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const bcrypt = require('bcryptjs');
+const { Pool } = require('pg');
+require('dotenv').config();
 
-const dbPath = path.join(__dirname, 'real_estate.db');
-const db = new sqlite3.Database(dbPath);
-
-// Initialize database
-const initDatabase = () => {
-  return new Promise((resolve, reject) => {
-    // Create tables
-    const createTables = `
-      CREATE TABLE IF NOT EXISTS admins (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS properties (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        description TEXT,
-        price REAL NOT NULL,
-        location TEXT NOT NULL,
-        sqft TEXT,
-        mobile_number TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS property_media (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        property_id INTEGER NOT NULL,
-        media_type TEXT CHECK(media_type IN ('photo','video')) NOT NULL,
-        media_url TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
-      );
-    `;
-
-    db.exec(createTables, (err) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve();
-      // REMOVED admin creation here - only create tables
+class Database {
+  constructor() {
+    this.pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { 
+        rejectUnauthorized: false 
+      } : false,
+      max: 20, // Maximum number of clients in the pool
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
     });
-  });
-};
-
-// Database query helper
-const query = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      resolve(rows);
+    
+    // Test connection on startup
+    this.pool.on('connect', () => {
+      console.log('✅ Connected to PostgreSQL database');
     });
-  });
-};
 
-const run = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function(err) {
-      if (err) reject(err);
-      resolve({ id: this.lastID, changes: this.changes });
+    this.pool.on('error', (err) => {
+      console.error('❌ PostgreSQL pool error:', err);
     });
-  });
-};
+  }
 
-const get = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      resolve(row);
+  // Convert SQLite ? placeholders to PostgreSQL $1, $2, $3
+  convertQuery(sql, params = []) {
+    let paramIndex = 0;
+    const convertedSql = sql.replace(/\?/g, () => {
+      paramIndex++;
+      return `$${paramIndex}`;
     });
-  });
-};
+    return { sql: convertedSql, params };
+  }
 
-module.exports = {
-  db,
-  initDatabase,
-  query,
-  run,
-  get
-};
+  async query(sql, params = []) {
+    try {
+      const { sql: pgSql, params: pgParams } = this.convertQuery(sql, params);
+      console.log('📊 Query:', pgSql.substring(0, 100), '...');
+      const result = await this.pool.query(pgSql, pgParams);
+      return result.rows;
+    } catch (error) {
+      console.error('❌ Database query error:', error.message);
+      console.error('Query:', sql);
+      console.error('Params:', params);
+      throw error;
+    }
+  }
+
+  async run(sql, params = []) {
+    try {
+      const { sql: pgSql, params: pgParams } = this.convertQuery(sql, params);
+      console.log('📝 Run:', pgSql.substring(0, 100), '...');
+      const result = await this.pool.query(pgSql, pgParams);
+      return {
+        id: result.rows[0]?.id,
+        changes: result.rowCount
+      };
+    } catch (error) {
+      console.error('❌ Database run error:', error.message);
+      console.error('Query:', sql);
+      console.error('Params:', params);
+      throw error;
+    }
+  }
+
+  async get(sql, params = []) {
+    try {
+      const { sql: pgSql, params: pgParams } = this.convertQuery(sql, params);
+      console.log('🔍 Get:', pgSql.substring(0, 100), '...');
+      const result = await this.pool.query(pgSql, pgParams);
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('❌ Database get error:', error.message);
+      console.error('Query:', sql);
+      console.error('Params:', params);
+      throw error;
+    }
+  }
+
+  async close() {
+    await this.pool.end();
+  }
+}
+
+// Create singleton instance
+const db = new Database();
+module.exports = db;
