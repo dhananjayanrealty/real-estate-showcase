@@ -1,16 +1,15 @@
 const axios = require('axios');
 const FormData = require('form-data');
-const { run } = require('../database/db');
+const { run, get } = require('../database/db');
 const {
   IMGBB_API_KEY,
   IMGBB_UPLOAD_URL,
   CLOUDINARY_CLOUD_NAME,
   CLOUDINARY_API_KEY,
-  CLOUDINARY_API_SECRET,
-  CLOUDINARY_UPLOAD_URL
+  CLOUDINARY_API_SECRET
 } = require('../config/upload');
 
-// Upload image to ImgBB
+// Upload image to ImgBB (PostgreSQL version)
 const uploadImage = async (req, res) => {
   try {
     console.log('Image upload started...');
@@ -32,9 +31,8 @@ const uploadImage = async (req, res) => {
       return res.status(400).json({ error: 'Property ID is required' });
     }
 
-    // Check if property exists
-    const { get } = require('../database/db');
-    const property = await get('SELECT id FROM properties WHERE id = ?', [propertyId]);
+    // Check if property exists - PostgreSQL uses $1 placeholder
+    const property = await get('SELECT id FROM properties WHERE id = $1', [propertyId]);
     if (!property) {
       return res.status(404).json({ error: 'Property not found' });
     }
@@ -53,11 +51,10 @@ const uploadImage = async (req, res) => {
     
     const response = await axios.post(IMGBB_UPLOAD_URL, formData, {
       headers: formData.getHeaders(),
-      timeout: 30000 // 30 second timeout
+      timeout: 30000
     });
 
     console.log('ImgBB response status:', response.status);
-    console.log('ImgBB response data:', response.data);
 
     if (!response.data.success) {
       throw new Error(`ImgBB upload failed: ${response.data.error?.message || 'Unknown error'}`);
@@ -66,9 +63,9 @@ const uploadImage = async (req, res) => {
     const imageUrl = response.data.data.url;
     console.log('Image URL received:', imageUrl);
 
-    // Save to database
+    // Save to database - PostgreSQL uses $1, $2, $3
     await run(
-      'INSERT INTO property_media (property_id, media_type, media_url) VALUES (?, ?, ?)',
+      'INSERT INTO property_media (property_id, media_type, media_url) VALUES ($1, $2, $3)',
       [propertyId, 'photo', imageUrl]
     );
 
@@ -79,7 +76,6 @@ const uploadImage = async (req, res) => {
 
   } catch (error) {
     console.error('Image upload error:', error.message);
-    console.error('Error stack:', error.stack);
     
     if (error.code === 'ECONNABORTED') {
       return res.status(408).json({ error: 'Upload timeout. Please try again.' });
@@ -100,7 +96,7 @@ const uploadImage = async (req, res) => {
   }
 };
 
-// Upload video to Cloudinary
+// Upload video to Cloudinary (PostgreSQL version)
 const uploadVideo = async (req, res) => {
   try {
     console.log('Video upload started...');
@@ -116,27 +112,25 @@ const uploadVideo = async (req, res) => {
     }
 
     // Check if property exists
-    const { get } = require('../database/db');
-    const property = await get('SELECT id FROM properties WHERE id = ?', [propertyId]);
+    const property = await get('SELECT id FROM properties WHERE id = $1', [propertyId]);
     if (!property) {
       return res.status(404).json({ error: 'Property not found' });
     }
 
-    // Check file size (50MB limit)
+    // Check file size
     if (file.size > 50 * 1024 * 1024) {
       return res.status(400).json({ error: 'Video file must be less than 50MB' });
     }
 
     console.log(`Uploading video: ${file.originalname}, Size: ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
 
-    // Convert buffer to base64 for Cloudinary
+    // Convert buffer to base64
     const base64Video = file.buffer.toString('base64');
     const dataUri = `data:${file.mimetype};base64,${base64Video}`;
     
-    // Create a unique public ID for the video
     const publicId = `property_${propertyId}_video_${Date.now()}`;
 
-    // Upload to Cloudinary with unsigned preset
+    // Upload to Cloudinary
     const formData = new FormData();
     formData.append('file', dataUri);
     formData.append('upload_preset', 'real_estate_videos');
@@ -147,31 +141,24 @@ const uploadVideo = async (req, res) => {
     
     console.log('Sending to Cloudinary...');
     
-    // Set longer timeout for large videos
     const response = await axios.post(
       `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`,
       formData,
       {
         headers: formData.getHeaders(),
-        timeout: 300000, // 5 minute timeout for 50MB videos
+        timeout: 300000,
         maxContentLength: Infinity,
         maxBodyLength: Infinity
       }
     );
 
     console.log('✅ Cloudinary upload successful');
-    console.log('Response:', {
-      url: response.data.secure_url,
-      format: response.data.format,
-      duration: response.data.duration,
-      bytes: response.data.bytes
-    });
-
+    
     const videoUrl = response.data.secure_url;
 
     // Save to database
     await run(
-      'INSERT INTO property_media (property_id, media_type, media_url) VALUES (?, ?, ?)',
+      'INSERT INTO property_media (property_id, media_type, media_url) VALUES ($1, $2, $3)',
       [propertyId, 'video', videoUrl]
     );
 
@@ -192,7 +179,7 @@ const uploadVideo = async (req, res) => {
     if (error.code === 'ECONNABORTED') {
       return res.status(408).json({ 
         error: 'Upload timeout', 
-        message: 'Video upload took too long. Try a smaller file or check your internet connection.' 
+        message: 'Video upload took too long. Try a smaller file.' 
       });
     }
     
@@ -210,20 +197,20 @@ const uploadVideo = async (req, res) => {
     });
   }
 };
-// Delete media
+
+// Delete media (PostgreSQL version)
 const deleteMedia = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Get the media record so we can attempt to delete remote copy if applicable
-    const { get } = require('../database/db');
-    const media = await get('SELECT * FROM property_media WHERE id = ?', [id]);
+    // Get the media record
+    const media = await get('SELECT * FROM property_media WHERE id = $1', [id]);
 
     if (!media) {
       return res.status(404).json({ error: 'Media not found' });
     }
 
-    // If it's a Cloudinary video, try to delete from Cloudinary first
+    // If it's a Cloudinary video
     if (media.media_type === 'video' && media.media_url && media.media_url.includes('cloudinary.com')) {
       try {
         const CloudinaryDelete = require('../utils/cloudinaryDelete');
@@ -242,8 +229,8 @@ const deleteMedia = async (req, res) => {
       }
     }
 
-    // For ImgBB images we do not have a reliable API delete, so we remove DB entry only
-    await run('DELETE FROM property_media WHERE id = ?', [id]);
+    // Delete from database
+    await run('DELETE FROM property_media WHERE id = $1', [id]);
 
     res.json({ message: 'Media deleted successfully' });
   } catch (error) {

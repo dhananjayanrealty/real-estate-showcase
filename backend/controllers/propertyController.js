@@ -1,15 +1,16 @@
 const { query, run, get } = require('../database/db');
 const CloudinaryDelete = require('../utils/cloudinaryDelete');
 
-// Get all properties
+// Get all properties (PostgreSQL version)
 const getAllProperties = async (req, res) => {
   try {
     const { location, minPrice, maxPrice } = req.query;
     
+    // PostgreSQL uses STRING_AGG instead of GROUP_CONCAT
     let sql = `
       SELECT p.*, 
-        GROUP_CONCAT(DISTINCT CASE WHEN pm.media_type = 'photo' THEN pm.media_url END) as photos,
-        GROUP_CONCAT(DISTINCT CASE WHEN pm.media_type = 'video' THEN pm.media_url END) as videos
+        STRING_AGG(DISTINCT CASE WHEN pm.media_type = 'photo' THEN pm.media_url END, ',') as photos,
+        STRING_AGG(DISTINCT CASE WHEN pm.media_type = 'video' THEN pm.media_url END, ',') as videos
       FROM properties p
       LEFT JOIN property_media pm ON p.id = pm.property_id
     `;
@@ -18,17 +19,17 @@ const getAllProperties = async (req, res) => {
     const conditions = [];
     
     if (location) {
-      conditions.push('p.location LIKE ?');
+      conditions.push('p.location ILIKE $' + (params.length + 1));
       params.push(`%${location}%`);
     }
     
     if (minPrice) {
-      conditions.push('p.price >= ?');
+      conditions.push('p.price >= $' + (params.length + 1));
       params.push(parseFloat(minPrice));
     }
     
     if (maxPrice) {
-      conditions.push('p.price <= ?');
+      conditions.push('p.price <= $' + (params.length + 1));
       params.push(parseFloat(maxPrice));
     }
     
@@ -40,11 +41,11 @@ const getAllProperties = async (req, res) => {
     
     const properties = await query(sql, params);
     
-    // Parse media URLs
+    // Parse comma-separated strings into arrays
     const formattedProperties = properties.map(property => ({
       ...property,
-      photos: property.photos ? property.photos.split(',').filter(url => url) : [],
-      videos: property.videos ? property.videos.split(',').filter(url => url) : [],
+      photos: property.photos ? property.photos.split(',').filter(url => url && url.trim() !== '') : [],
+      videos: property.videos ? property.videos.split(',').filter(url => url && url.trim() !== '') : [],
       price: parseFloat(property.price)
     }));
     
@@ -55,19 +56,19 @@ const getAllProperties = async (req, res) => {
   }
 };
 
-// Get single property
+// Get single property (PostgreSQL version)
 const getPropertyById = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const property = await get('SELECT * FROM properties WHERE id = ?', [id]);
+    const property = await get('SELECT * FROM properties WHERE id = $1', [id]);
     
     if (!property) {
       return res.status(404).json({ error: 'Property not found' });
     }
     
     const media = await query(
-      'SELECT * FROM property_media WHERE property_id = ? ORDER BY created_at',
+      'SELECT * FROM property_media WHERE property_id = $1 ORDER BY created_at',
       [id]
     );
     
@@ -86,7 +87,7 @@ const getPropertyById = async (req, res) => {
   }
 };
 
-// Create property
+// Create property (PostgreSQL version)
 const createProperty = async (req, res) => {
   try {
     const { title, description, price, location, sqft, mobile_number } = req.body;
@@ -97,7 +98,7 @@ const createProperty = async (req, res) => {
     
     const result = await run(
       `INSERT INTO properties (title, description, price, location, sqft, mobile_number) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
       [title, description, parseFloat(price), location, sqft, mobile_number]
     );
     
@@ -111,22 +112,23 @@ const createProperty = async (req, res) => {
   }
 };
 
-// Update property
+// Update property (PostgreSQL version)
 const updateProperty = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, price, location, sqft, mobile_number } = req.body;
     
     // Check if property exists
-    const property = await get('SELECT id FROM properties WHERE id = ?', [id]);
+    const property = await get('SELECT id FROM properties WHERE id = $1', [id]);
     if (!property) {
       return res.status(404).json({ error: 'Property not found' });
     }
     
     await run(
       `UPDATE properties 
-       SET title = ?, description = ?, price = ?, location = ?, sqft = ?, mobile_number = ?, updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
+       SET title = $1, description = $2, price = $3, location = $4, sqft = $5, 
+           mobile_number = $6, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $7`,
       [title, description, parseFloat(price), location, sqft, mobile_number, id]
     );
     
@@ -137,7 +139,7 @@ const updateProperty = async (req, res) => {
   }
 };
 
-// Delete property
+// Delete property (PostgreSQL version)
 const deleteProperty = async (req, res) => {
   try {
     const { id } = req.params;
@@ -145,20 +147,20 @@ const deleteProperty = async (req, res) => {
     console.log(`Deleting property ID: ${id}`);
     
     // Check if property exists
-    const property = await get('SELECT id FROM properties WHERE id = ?', [id]);
+    const property = await get('SELECT id FROM properties WHERE id = $1', [id]);
     if (!property) {
       return res.status(404).json({ error: 'Property not found' });
     }
     
-    // Get all videos for this property to delete from Cloudinary
+    // Get all videos for this property
     const videos = await query(
-      'SELECT * FROM property_media WHERE property_id = ? AND media_type = ?',
+      'SELECT * FROM property_media WHERE property_id = $1 AND media_type = $2',
       [id, 'video']
     );
     
     console.log(`Found ${videos.length} videos to delete from Cloudinary`);
     
-    // Delete videos from Cloudinary if ENABLE_MEDIA_CLEANUP is true
+    // Delete videos from Cloudinary if enabled
     let cloudinaryResults = [];
     if (process.env.ENABLE_MEDIA_CLEANUP === 'true' && videos.length > 0) {
       const cloudinaryDelete = new CloudinaryDelete();
@@ -185,19 +187,19 @@ const deleteProperty = async (req, res) => {
       }
     }
     
-    // Get all images for this property
+    // Get all images
     const images = await query(
-      'SELECT * FROM property_media WHERE property_id = ? AND media_type = ?',
+      'SELECT * FROM property_media WHERE property_id = $1 AND media_type = $2',
       [id, 'photo']
     );
     
-    console.log(`Found ${images.length} images (ImgBB - cannot delete via API)`);
+    console.log(`Found ${images.length} images`);
     
-    // Delete all media from database
-    await run('DELETE FROM property_media WHERE property_id = ?', [id]);
+    // Delete all media
+    await run('DELETE FROM property_media WHERE property_id = $1', [id]);
     
-    // Delete property from database
-    await run('DELETE FROM properties WHERE id = ?', [id]);
+    // Delete property
+    await run('DELETE FROM properties WHERE id = $1', [id]);
     
     res.json({ 
       message: 'Property deleted successfully',
@@ -205,8 +207,7 @@ const deleteProperty = async (req, res) => {
         propertyId: id,
         videosDeleted: videos.length,
         imagesDeleted: images.length,
-        cloudinaryResults: cloudinaryResults,
-        note: 'ImgBB images cannot be deleted via API (free tier limitation)'
+        cloudinaryResults: cloudinaryResults
       }
     });
     
@@ -216,11 +217,14 @@ const deleteProperty = async (req, res) => {
   }
 };
 
-// Get media rows (with ids) for a property
+// Get media rows for a property
 const getPropertyMedia = async (req, res) => {
   try {
     const { id } = req.params;
-    const media = await query('SELECT id, media_type, media_url, created_at FROM property_media WHERE property_id = ? ORDER BY created_at', [id]);
+    const media = await query(
+      'SELECT id, media_type, media_url, created_at FROM property_media WHERE property_id = $1 ORDER BY created_at', 
+      [id]
+    );
     res.json(media);
   } catch (error) {
     console.error('Error getting property media:', error);

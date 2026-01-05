@@ -10,8 +10,8 @@ const login = async (req, res) => {
       return res.status(400).json({ error: 'Username and password required' });
     }
 
-    // Find admin user
-    const admin = await get('SELECT * FROM admins WHERE username = ?', [username]);
+    // Find admin user - PostgreSQL uses $1, $2 placeholders
+    const admin = await get('SELECT * FROM admins WHERE username = $1', [username]);
     
     if (!admin) {
       return res.status(401).json({ error: 'Invalid credentials' });

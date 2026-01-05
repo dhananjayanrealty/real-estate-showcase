@@ -1,6 +1,6 @@
 const { query, run, get } = require('../database/db');
 
-// Save contact message (NO EMAIL AT ALL)
+// Save contact message (PostgreSQL version)
 const saveContactMessage = async (req, res) => {
   try {
     const { name, phone, email, message } = req.body;
@@ -15,15 +15,14 @@ const saveContactMessage = async (req, res) => {
       });
     }
     
-    // Save to database
+    // Save to database - PostgreSQL uses $1, $2 placeholders
     const result = await run(
-      'INSERT INTO contact_messages (name, phone, email, message) VALUES (?, ?, ?, ?)',
+      'INSERT INTO contact_messages (name, phone, email, message) VALUES ($1, $2, $3, $4) RETURNING id',
       [name, phone, email || null, message]
     );
     
     console.log('✅ Message saved to database. ID:', result.id);
     
-    // Return success IMMEDIATELY (NO EMAIL CODE AT ALL)
     return res.json({
       success: true,
       message: 'Thank you for your message! We will contact you soon.',
@@ -39,7 +38,7 @@ const saveContactMessage = async (req, res) => {
   }
 };
 
-// Get all contact messages (admin only)
+// Get all contact messages
 const getAllContactMessages = async (req, res) => {
   try {
     const messages = await query(
@@ -59,7 +58,7 @@ const getContactMessageById = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const message = await get('SELECT * FROM contact_messages WHERE id = ?', [id]);
+    const message = await get('SELECT * FROM contact_messages WHERE id = $1', [id]);
     
     if (!message) {
       return res.status(404).json({ error: 'Message not found' });
@@ -78,7 +77,7 @@ const deleteContactMessage = async (req, res) => {
   try {
     const { id } = req.params;
     
-    await run('DELETE FROM contact_messages WHERE id = ?', [id]);
+    await run('DELETE FROM contact_messages WHERE id = $1', [id]);
     
     res.json({ message: 'Message deleted successfully' });
     
