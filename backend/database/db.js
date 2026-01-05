@@ -1,87 +1,94 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const bcrypt = require('bcryptjs');
+const { Pool } = require('pg');
+require('dotenv').config();
 
-const dbPath = path.join(__dirname, 'real_estate.db');
-const db = new sqlite3.Database(dbPath);
+class Database {
+  constructor() {
+    // Neon requires sslmode=require in connection string
+    const connectionString = process.env.DATABASE_URL;
+    
+    if (!connectionString) {
+      console.error('❌ DATABASE_URL is not set');
+      throw new Error('DATABASE_URL environment variable is required');
+    }
+    
+    this.pool = new Pool({
+      connectionString: connectionString,
+      ssl: {
+        rejectUnauthorized: false,
+        require: true
+      },
+      connectionTimeoutMillis: 10000, // 10 seconds
+      idleTimeoutMillis: 30000,
+      max: 5, // Neon free tier allows 5 connections
+    });
+    
+    console.log('📊 PostgreSQL pool created for Neon.tech');
+    
+    // Test connection
+    this.pool.on('connect', () => {
+      console.log('✅ Connected to Neon PostgreSQL');
+    });
+    
+    this.pool.on('error', (err) => {
+      console.error('❌ PostgreSQL pool error:', err);
+    });
+  }
 
-// Initialize database
-const initDatabase = () => {
-  return new Promise((resolve, reject) => {
-    // Create tables
-    const createTables = `
-      CREATE TABLE IF NOT EXISTS admins (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
+  // Convert SQLite ? placeholders to PostgreSQL $1, $2
+  convertQuery(sql, params = []) {
+    let paramIndex = 0;
+    const convertedSql = sql.replace(/\?/g, () => {
+      paramIndex++;
+      return `$${paramIndex}`;
+    });
+    return { sql: convertedSql, params };
+  }
 
-      CREATE TABLE IF NOT EXISTS properties (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        description TEXT,
-        price REAL NOT NULL,
-        location TEXT NOT NULL,
-        sqft TEXT,
-        mobile_number TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS property_media (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        property_id INTEGER NOT NULL,
-        media_type TEXT CHECK(media_type IN ('photo','video')) NOT NULL,
-        media_url TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
-      );
-    `;
-
-    db.exec(createTables, (err) => {
-      if (err) {
-        reject(err);
-        return;
+  async query(sql, params = []) {
+    const start = Date.now();
+    try {
+      const { sql: pgSql, params: pgParams } = this.convertQuery(sql, params);
+      
+      const result = await this.pool.query(pgSql, pgParams);
+      const duration = Date.now() - start;
+      
+      if (duration > 1000) {
+        console.log(`⚠️ Slow query (${duration}ms): ${pgSql.substring(0, 50)}...`);
       }
-      resolve();
-      // REMOVED admin creation here - only create tables
-    });
-  });
-};
+      
+      return result.rows;
+    } catch (error) {
+      console.error(`❌ Query error (${Date.now() - start}ms):`, error.message);
+      console.error('Query:', sql.substring(0, 100));
+      throw error;
+    }
+  }
 
-// Database query helper
-const query = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      resolve(rows);
-    });
-  });
-};
+  async run(sql, params = []) {
+    try {
+      const { sql: pgSql, params: pgParams } = this.convertQuery(sql, params);
+      const result = await this.pool.query(pgSql, pgParams);
+      return {
+        id: result.rows[0]?.id,
+        changes: result.rowCount
+      };
+    } catch (error) {
+      console.error('❌ Run error:', error.message);
+      throw error;
+    }
+  }
 
-const run = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function(err) {
-      if (err) reject(err);
-      resolve({ id: this.lastID, changes: this.changes });
-    });
-  });
-};
+  async get(sql, params = []) {
+    try {
+      const { sql: pgSql, params: pgParams } = this.convertQuery(sql, params);
+      const result = await this.pool.query(pgSql, pgParams);
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('❌ Get error:', error.message);
+      throw error;
+    }
+  }
+}
 
-const get = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      resolve(row);
-    });
-  });
-};
-
-module.exports = {
-  db,
-  initDatabase,
-  query,
-  run,
-  get
-};
+const db = new Database();
+module.exports = db;
